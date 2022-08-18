@@ -10,6 +10,7 @@ from scipy import ndimage as ndi
 from scipy import stats
 import imageio
 import nd2
+from preprocessingFunctions import show_original_filt, show_labels
 
 #%% <functions>
 def fos_img(data_path):
@@ -49,40 +50,6 @@ def filtering(img, top_thresh, low_thresh):
     filt=ndi.median_filter(eroded, size=5)
     return filt
 
-
-def show_original_filt (original, filt):
-    fig, (ax1, ax2) = plt.subplots(1,2)
-    ax1.imshow(original, cmap="gray_r")
-    ax2.imshow(filt, cmap="gray_r")
-    ax1.set_axis_off()
-    ax2.set_axis_off()
-    plt.tight_layout()
-
-def show_labels(img, img_original):
-    label_image= sk.measure.label(img)
-    image_label_overlay = sk.color.label2rgb(label_image, image=img, bg_label=0)
-    f, (ax1, ax2)=plt.subplots(1,2)
-    #fig, ax2 = plt.subplots(figsize=(10, 6))
-    ax1.imshow(img_original, cmap="gray_r")
-    ax2.imshow(image_label_overlay, cmap="gray_r")
-
-    for region in sk.measure.regionprops(label_image):
-        # take regions with large enough areas
-        if region.eccentricity<=circ:
-            if region.axis_major_length <= axis_limit:
-                if region.axis_minor_length >=axis_min:
-                    if region.axis_minor_length / region.axis_major_length >=axis_ratio:
-            # draw rectangle around segmented coins
-                        minr, minc, maxr, maxc = region.bbox
-                        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
-                                          fill=False, edgecolor='red', linewidth=0.5)
-                        ax2.add_patch(rect)
-
-
-    ax1.set_axis_off()
-    ax2.set_axis_off()
-    plt.tight_layout()
-    plt.show()
 
 def blobs_coordinates(img, stacks):
     blobs=pd.DataFrame(columns=["x","y","z"])
