@@ -12,6 +12,6 @@ The algorithm calculates the XY coordinates of the centroid of each cell with an
 The accuracy of the cFos cell counts obtained by the algorithm were validated by conducting a pairwise comparison of the Fos+ cells counted by the code against two datasets of pre-counted Fos-stained images, one in the far-red channel and one in the green channel (p> 0.05). 
 
 
-#cellCounter
+# cellCounter
 
 cellCounter is an expansion to FosCounter aimed to count other types of cells (here we count PV interneurons and mCherry tagged cells) in addition to cFos positive cells. The code also counts co-localization of the IHC stained cell types. 
