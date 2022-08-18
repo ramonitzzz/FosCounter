@@ -20,7 +20,7 @@ circ=0.98
 
 #%%
 #path="/Users/romina/Downloads/NisslIR_mCherry_PVB_fosG"
-path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/internship_1/remote_memory/NisslIR_mCherry_PVB_fosG"
+path="/Users/romina/remote_memory/NisslIR_mCherry_PVB_fosG"
 # %%
 all_files=[]
 for filename in os.listdir(path):
