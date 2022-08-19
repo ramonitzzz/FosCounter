@@ -9,7 +9,7 @@ import math
 from scipy import ndimage as ndi
 import imageio
 import nd2
-from preprocessingFunctions import getImg, filteredImg, show_original_filt, show_labels, getThresh, getCoords, getOverlap
+from processingFunctions import getImg, filteredImg, show_original_filt, show_labels, getThresh, getCoords, getOverlap
 
 
 #%% params
