@@ -13,7 +13,7 @@ import nd2
 #%%
 def getImg(channel, data_path):
     if ".nd2" in data_path:
-        vol= nd2.imread(data_path, xarray=True)
+        vol= nd2.imread(data_path)
     else:
         vol=imageio.volread(data_path)
     img=vol[:,channel,:,:]
