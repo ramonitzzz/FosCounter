@@ -10,8 +10,8 @@ from scipy import ndimage as ndi
 from scipy import stats
 import imageio
 import nd2
-from preprocessingFunctions import show_original_filt, show_labels, filteredImg
-from preprocessingFunctions import getImg
+from processingFunctions import show_original_filt, show_labels, filteredImg
+from processingFunctions import getImg
 #%% <functions>
 
 def filtering(img, top_thresh, low_thresh):
