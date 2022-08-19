@@ -10,18 +10,9 @@ from scipy import ndimage as ndi
 from scipy import stats
 import imageio
 import nd2
-from preprocessingFunctions import show_original_filt, show_labels
-
+from preprocessingFunctions import show_original_filt, show_labels, filteredImg
+from preprocessingFunctions import getImg
 #%% <functions>
-def fos_img(data_path):
-    if ".nd2" in data_path:
-        vol= nd2.imread(data_path)
-    else:
-        vol=imageio.volread(data_path)
-    fos=vol[:,3,:,:] #change the 3 here for the channel where your fos is stained, note that the count starts in 0 so if you have fos in the first channel of your image you need to put 0 here and so on (i.e here the 3 corresponds to the IR channel)
-    stacks= np.shape(fos)[0]
-    return fos, stacks
-
 
 def filtering(img, top_thresh, low_thresh):
     denoise=sk.restoration.denoise_wavelet(img)
@@ -42,12 +33,7 @@ def filtering(img, top_thresh, low_thresh):
                     thresh= t_thresh + np.percentile(blurred, top_thresh)
             else:
                 thresh= t_thresh + np.percentile(blurred,low_thresh)
-    fos_cells=np.where(blurred >= thresh, 1, 0)
-    filtered=ndi.median_filter(fos_cells, size=5)
-    eroded=ndi.binary_erosion(filtered)
-    dilated= ndi.binary_dilation(eroded, iterations=1)
-    eroded=ndi.binary_erosion(dilated, iterations=2)
-    filt=ndi.median_filter(eroded, size=5)
+    filt=filteredImg(blurred, thresh)
     return filt
 
 
@@ -114,7 +100,7 @@ counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
     try:
         name= path + "/" + filename
-        fos, stacks=fos_img(name)
+        fos, stacks=getImg(3, name) #change the 3 here for the channel where your fos is stained, note that the count starts in 0 so if you have fos in the first channel of your image you need to put 0 here and so on (i.e here the 3 corresponds to the IR channel)
         blobs= blobs_coordinates(fos, stacks)
         overlap=overlap_coords(blobs, stacks, dist_parameter)
         fos_count=len(blobs)-len(overlap)
@@ -132,7 +118,7 @@ counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the resu
  # try adjusting the top and low threshold values until you get optimal results
 # %% 
 data= path + "/"+"35_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
-fos_t, stacks=fos_img(data)
+fos_t, stacks=getImg(3, data)
 print(stacks)
 
 
