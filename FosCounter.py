@@ -11,31 +11,35 @@ from scipy import stats
 import imageio
 import nd2
 from processingFunctions import show_original_filt, show_labels, filteredImg
-from processingFunctions import getImg
+from processingFunctions import getImg, intensitySaver
 #%% <functions>
-
-def filtering(img, top_thresh, low_thresh):
+def filtering(img, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh):
     denoise=sk.restoration.denoise_wavelet(img)
     blurred = sk.filters.gaussian(denoise, sigma=2.0)
     t_thresh=sk.filters.threshold_otsu(blurred)
-    if np.percentile(blurred, 99)<= 0.0035: #this is a safety net for images with too little intensity, you can try and adjust this if needed
-        thresh= t_thresh + np.percentile(blurred, 95) 
-    elif np.percentile(blurred,99)>=0.01:
-        thresh= t_thresh + np.percentile(blurred, 4) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
+    #filter images with too low or too bright intensities 
+    if np.percentile(blurred, 25)<= low_int: #this is a safety net for images with too little intensity, you can try and adjust this if needed
+        thresh= t_thresh + np.percentile(blurred, high_int_thresh) 
+    elif np.percentile(blurred,99)>= high_int:
+        thresh= t_thresh + np.percentile(blurred, low_int_thresh) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
     else:
-        if t_thresh/np.median(blurred)>=3:
+        if t_thresh/np.median(blurred)>=int_cutoff_up:
             thresh= t_thresh
         else:
-            if t_thresh/np.median(blurred)<=1.5: 
-                if t_thresh/np.median(blurred)<=0.99:
-                    thresh=t_thresh + np.percentile(blurred, 90)
+            if t_thresh/np.median(blurred)<=int_cutoff: 
+                if t_thresh/np.median(blurred)<=int_cutoff_down: #before int_cutoff*0.66
+                    thresh=t_thresh + np.percentile(blurred, low_thresh)
                 else:
                     thresh= t_thresh + np.percentile(blurred, top_thresh)
             else:
-                thresh= t_thresh + np.percentile(blurred,low_thresh)
-    filt=filteredImg(blurred, thresh)
+                thresh= t_thresh + np.percentile(blurred, mid_thresh)
+    fos_cells=np.where(blurred >= thresh, 1, 0)
+    filtered=ndi.median_filter(fos_cells, size=5)
+    eroded=ndi.binary_erosion(filtered)
+    dilated= ndi.binary_dilation(eroded, iterations=1)
+    eroded=ndi.binary_erosion(dilated, iterations=2)
+    filt=ndi.median_filter(eroded, size=5)
     return filt
-
 
 def blobs_coordinates(img, stacks):
     blobs=pd.DataFrame(columns=["x","y","z"])
@@ -81,7 +85,10 @@ axis_min=10.5
 circ=0.98
 axis_ratio= 0.45
 top_thresh=95 #this is gonna be the threshold for images with higher background, adjust it based on your settings
-low_thresh=91 #this is gonna be the threshold for images with lower background, adjust it based on your settings
+mid_thresh=92 #this is gonna be the threshold for images with medium background, adjust it based on your settings
+low_thresh=90 #this is gonna be the threshold for images with lower background, adjust it based on your settings
+high_int_thresh=98
+low_int_thresh=4
 
 #%% path to images
 path="/PathGoesHere/fos_images" #change this to the path to your images 
@@ -95,6 +102,8 @@ for filename in os.listdir(path):
         all_files.append(filename)
 print(all_files)
 
+#%% get intensity cut off values for filtering function
+low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, 1).getIntensityValues()
 # %%
 counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
@@ -120,7 +129,6 @@ counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the resu
 data= path + "/"+"35_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
 fos_t, stacks=getImg(3, data)
 print(stacks)
-
 
 # %% here you can see the values of the image intensities 
 for i in range(stacks):
