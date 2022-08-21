@@ -247,3 +247,48 @@ class getOverlap:
                                 overlap = overlap.append(a_series, ignore_index=True)
         return overlap
     
+class intensitySaver:
+    def __init__(self, path, files, channel):
+        self.path=path
+        self.files=files
+        self.channel= channel
+
+    def getInts(self):
+        ints= pd.DataFrame(columns=["25 percentile", "median", "99 percentile", "thresh/median"])
+        for filename in self.files:
+            name= self.path + "/" + filename
+            fos, stacks=getImg(self.channel, name)
+            for i in range(stacks):
+                denoise=sk.restoration.denoise_wavelet(fos[i])
+                blurred = sk.filters.gaussian(denoise, sigma=2.0)
+                thresh=sk.filters.threshold_otsu(blurred)
+                p25= np.percentile(blurred, 25)
+                med=np.median(blurred)
+                p99= np.percentile(blurred, 99)
+                th_med= thresh/np.median(blurred)
+                val_list=(p25, med, p99, th_med)
+                c_series = pd.Series(val_list, index = ints.columns)
+                ints= ints.append(c_series, ignore_index=True)
+        return ints
+
+    def getIntensityValues(self):
+        ints=self.getInts()
+        #get int cut off values 
+        low_int= ints["25 percentile"].quantile(0.05)
+        high_int=ints["99 percentile"].quantile(0.95)
+        int_cutoff= ints["thresh/median"].median()/2
+        int_cutoff_up= ints["thresh/median"].quantile(0.85)
+        int_cutoff_down= ints["thresh/median"].quantile(0.15)
+
+        #reorder intensity cut off points if necessary
+        if int_cutoff_down> int_cutoff:
+            saver=int_cutoff_down
+            int_cutoff_down=int_cutoff
+            int_cutoff=saver
+
+        if int_cutoff_up< int_cutoff:
+            saver= int_cutoff
+            int_cutoff=int_cutoff_up
+            int_cutoff_up= saver
+        
+        return low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down
