@@ -47,7 +47,7 @@ def blobs_coordinates(img, stacks):
     for i in range(stacks):
         blobs_coords=pd.DataFrame(columns=["x","y","z"])
         fos_c=img[i]
-        filt=filtering(fos_c, top_thresh, low_thresh)
+        filt=filtering(fos_c, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh)
         labels = sk.measure.label(filt)
         props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity'))
         props_table=pd.DataFrame(props)
@@ -143,7 +143,7 @@ for i in range(stacks):
 #here you can visually inspect the image and how it is being thresholded, and then adjust your thresholding values accordingly 
 for i in range(stacks):
     fos_cc=fos_t[i]
-    filt=filtering(fos_cc, top_thresh, low_thresh)
+    filt=filtering(fos_cc, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh)
     show_labels(filt, fos_cc)
 
 # %% here you can see the fos count of the trial image 
