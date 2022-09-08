@@ -144,7 +144,7 @@ for i in range(stacks):
 for i in range(stacks):
     fos_cc=fos_t[i]
     filt=filtering(fos_cc, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh)
-    show_labels(filt, fos_cc)
+    show_labels(filt, fos_cc, circ, axis_min, axis_limit, axis_ratio)
 
 # %% here you can see the fos count of the trial image 
 blobs= blobs_coordinates(fos_t, stacks)
