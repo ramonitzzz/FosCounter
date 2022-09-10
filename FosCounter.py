@@ -17,24 +17,28 @@ from processingFunctions import getImg, intensitySaver
 def filtering(img, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh):
     denoise=sk.restoration.denoise_wavelet(img)
     blurred = sk.filters.gaussian(denoise, sigma=2.0)
-    t_thresh=sk.filters.threshold_otsu(blurred)
-    #filter images with too low or too bright intensities 
-    if np.percentile(blurred, 25)<= low_int: #this is a safety net for images with too little intensity, you can try and adjust this if needed
-        thresh= t_thresh + np.percentile(blurred, high_int_thresh) 
-    elif np.percentile(blurred,99)>= high_int:
-        thresh= t_thresh + np.percentile(blurred, low_int_thresh) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
+    if is_intensity_low ==0:
+        prepro=blurred
     else:
-        if t_thresh/np.median(blurred)>=int_cutoff_up:
+        prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
+    t_thresh=sk.filters.threshold_otsu(prepro)
+    #filter images with too low or too bright intensities 
+    if np.percentile(prepro, 25)<= low_int: #this is a safety net for images with too little intensity, you can try and adjust this if needed
+        thresh= t_thresh + np.percentile(prepro, high_int_thresh) 
+    elif np.percentile(prepro,99)>= high_int:
+        thresh= t_thresh + np.percentile(prepro, low_int_thresh) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
+    else:
+        if t_thresh/np.median(prepro)>=int_cutoff_up:
             thresh= t_thresh
         else:
-            if t_thresh/np.median(blurred)<=int_cutoff: 
-                if t_thresh/np.median(blurred)<=int_cutoff_down: #before int_cutoff*0.66
-                    thresh=t_thresh + np.percentile(blurred, low_thresh)
+            if t_thresh/np.median(prepro)<=int_cutoff: 
+                if t_thresh/np.median(prepro)<=int_cutoff_down: #before int_cutoff*0.66
+                    thresh=t_thresh + np.percentile(prepro, low_thresh)
                 else:
-                    thresh= t_thresh + np.percentile(blurred, top_thresh)
+                    thresh= t_thresh + np.percentile(prepro, top_thresh)
             else:
-                thresh= t_thresh + np.percentile(blurred, mid_thresh)
-    fos_cells=np.where(blurred >= thresh, 1, 0)
+                thresh= t_thresh + np.percentile(prepro, mid_thresh)
+    fos_cells=np.where(prepro >= thresh, 1, 0)
     filtered=ndi.median_filter(fos_cells, size=5)
     eroded=ndi.binary_erosion(filtered)
     dilated= ndi.binary_dilation(eroded, iterations=1)
@@ -79,7 +83,9 @@ def overlap_coords(blobs, stacks, dist_thresh):
     return overlap
 
 
-#%% you're gonna have to adjust the thresholding parameters depending on your images 
+#%% PARAMETERS
+# you're gonna have to adjust the thresholding parameters depending on your images 
+is_intensity_low=0 #change to 1 if your images have low intensity and you wish to enhance contrast
 axis_limit = 60
 dist_parameter=25
 axis_min=10.5
