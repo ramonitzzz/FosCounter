@@ -85,6 +85,7 @@ def overlap_coords(blobs, stacks, dist_thresh):
 
 #%% PARAMETERS
 # you're gonna have to adjust the thresholding parameters depending on your images 
+channel=1 #channel where Fos staining is
 is_intensity_low=1 #change to 1 if your images have low intensity and you wish to enhance contrast
 axis_limit = 60
 dist_parameter=25
@@ -110,13 +111,13 @@ for filename in os.listdir(path):
 print(all_files)
 
 #%% get intensity cut off values for filtering function
-low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, 1, is_intensity_low).getIntensityValues()
+low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, channel, is_intensity_low).getIntensityValues()
 # %%
 counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
     try:
         name= path + "/" + filename
-        fos, stacks=getImg(3, name) #change the 3 here for the channel where your fos is stained, note that the count starts in 0 so if you have fos in the first channel of your image you need to put 0 here and so on (i.e here the 3 corresponds to the IR channel)
+        fos, stacks=getImg(channel, name) #change the 3 here for the channel where your fos is stained, note that the count starts in 0 so if you have fos in the first channel of your image you need to put 0 here and so on (i.e here the 3 corresponds to the IR channel)
         blobs= blobs_coordinates(fos, stacks)
         overlap=overlap_coords(blobs, stacks, dist_parameter)
         fos_count=len(blobs)-len(overlap)
@@ -127,7 +128,8 @@ for filename in all_files:
         print(filename + " not_read")
 
 # %%
-counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the results file
+#counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the results file
+counts.to_csv("/Users/romina/Desktop/counts_fos_julia_remmem.csv") #add the path and name of the results file
 
 ########
 #here is where you can see your images and try which threshold suits you best 
