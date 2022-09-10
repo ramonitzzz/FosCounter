@@ -252,7 +252,7 @@ class intensitySaver:
         self.path=path
         self.files=files
         self.channel= channel
-        self.is_intensity_low=is_intensity_low
+        self.is_intensity_low= is_intensity_low
 
     def getInts(self):
         ints= pd.DataFrame(columns=["25 percentile", "median", "99 percentile", "thresh/median"])
@@ -262,7 +262,7 @@ class intensitySaver:
             for i in range(stacks):
                 denoise=sk.restoration.denoise_wavelet(fos[i])
                 blurred = sk.filters.gaussian(denoise, sigma=2.0)
-                if is_intensity_low ==0:
+                if self.is_intensity_low ==0:
                     prepro=blurred
                 else:
                     prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
