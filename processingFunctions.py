@@ -253,7 +253,7 @@ class intensitySaver:
         self.files=files
         self.channel= channel
 
-    def getInts(self):
+    def getInts(self, is_intensity_low):
         ints= pd.DataFrame(columns=["25 percentile", "median", "99 percentile", "thresh/median"])
         for filename in self.files:
             name= self.path + "/" + filename
@@ -261,11 +261,15 @@ class intensitySaver:
             for i in range(stacks):
                 denoise=sk.restoration.denoise_wavelet(fos[i])
                 blurred = sk.filters.gaussian(denoise, sigma=2.0)
-                thresh=sk.filters.threshold_otsu(blurred)
-                p25= np.percentile(blurred, 25)
-                med=np.median(blurred)
-                p99= np.percentile(blurred, 99)
-                th_med= thresh/np.median(blurred)
+                if is_intensity_low ==0:
+                    prepro=blurred
+                else:
+                    prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
+                thresh=sk.filters.threshold_otsu(prepro)
+                p25= np.percentile(prepro, 25)
+                med=np.median(prepro)
+                p99= np.percentile(prepro, 99)
+                th_med= thresh/np.median(prepro)
                 val_list=(p25, med, p99, th_med)
                 c_series = pd.Series(val_list, index = ints.columns)
                 ints= ints.append(c_series, ignore_index=True)
