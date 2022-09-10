@@ -85,21 +85,21 @@ def overlap_coords(blobs, stacks, dist_thresh):
 
 #%% PARAMETERS
 # you're gonna have to adjust the thresholding parameters depending on your images 
-is_intensity_low=0 #change to 1 if your images have low intensity and you wish to enhance contrast
+is_intensity_low=1 #change to 1 if your images have low intensity and you wish to enhance contrast
 axis_limit = 60
 dist_parameter=25
 axis_min=10.5
 circ=0.98
 axis_ratio= 0.45
-top_thresh=95 #this is gonna be the threshold for images with higher background, adjust it based on your settings
-mid_thresh=92 #this is gonna be the threshold for images with medium background, adjust it based on your settings
-low_thresh=90 #this is gonna be the threshold for images with lower background, adjust it based on your settings
+top_thresh=50 #this is gonna be the threshold for images with higher background, adjust it based on your settings
+mid_thresh=6 #this is gonna be the threshold for images with medium background, adjust it based on your settings
+low_thresh=4 #this is gonna be the threshold for images with lower background, adjust it based on your settings
 high_int_thresh=98
-low_int_thresh=4
+low_int_thresh=50
 
 #%% path to images
-path="/PathGoesHere/fos_images" #change this to the path to your images 
-
+#path="/PathGoesHere/fos_images" #change this to the path to your images 
+path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/internship_1/remote_memory_julia"
 # %% this is gonna print all of the files in the path directory
 all_files=[]
 for filename in os.listdir(path):
@@ -110,7 +110,7 @@ for filename in os.listdir(path):
 print(all_files)
 
 #%% get intensity cut off values for filtering function
-low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, 1).getIntensityValues()
+low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, 1, is_intensity_low).getIntensityValues()
 # %%
 counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
@@ -133,17 +133,21 @@ counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the resu
 #here is where you can see your images and try which threshold suits you best 
  # try adjusting the top and low threshold values until you get optimal results
 # %% 
-data= path + "/"+"35_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
-fos_t, stacks=getImg(3, data)
+data= path + "/"+"C_APPvsWT_remotememory_DAPI_fos_GAD67_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
+fos_t, stacks=getImg(1, data)
 print(stacks)
 
 # %% here you can see the values of the image intensities 
 for i in range(stacks):
     denoise=sk.restoration.denoise_wavelet(fos_t[i])
     blurred = sk.filters.gaussian(denoise, sigma=2.0)
-    thresh=sk.filters.threshold_otsu(blurred)
-    print(thresh/np.median(blurred)) #note that this is what the conditional thresholding is based on, this is the relation to the otsu threshold method to the median value of the intensity of the image
-    print("25 p:", np.percentile(blurred, 25), "99 p:", np.percentile(blurred, 99)) #this will give you information about the range of the image intensity
+    if is_intensity_low ==0:
+        prepro=blurred
+    else:
+        prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
+    thresh=sk.filters.threshold_otsu(prepro)
+    print(thresh/np.median(prepro)) #note that this is what the conditional thresholding is based on, this is the relation to the otsu threshold method to the median value of the intensity of the image
+    print("25 p:", np.percentile(prepro, 25), "99 p:", np.percentile(prepro, 99)) #this will give you information about the range of the image intensity
 
 # %% TEST TRIAL 
 #here you can visually inspect the image and how it is being thresholded, and then adjust your thresholding values accordingly 
@@ -156,3 +160,5 @@ for i in range(stacks):
 blobs= blobs_coordinates(fos_t, stacks)
 overlap=overlap_coords(blobs, stacks, dist_parameter)
 print(len(blobs)-len(overlap))
+
+# %%
