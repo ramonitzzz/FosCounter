@@ -248,12 +248,13 @@ class getOverlap:
         return overlap
     
 class intensitySaver:
-    def __init__(self, path, files, channel):
+    def __init__(self, path, files, channel, is_intensity_low):
         self.path=path
         self.files=files
         self.channel= channel
+        self.is_intensity_low=is_intensity_low
 
-    def getInts(self, is_intensity_low):
+    def getInts(self):
         ints= pd.DataFrame(columns=["25 percentile", "median", "99 percentile", "thresh/median"])
         for filename in self.files:
             name= self.path + "/" + filename
