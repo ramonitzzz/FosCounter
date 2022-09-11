@@ -38,12 +38,7 @@ def filtering(img, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_
                     thresh= t_thresh + np.percentile(prepro, top_thresh)
             else:
                 thresh= t_thresh + np.percentile(prepro, mid_thresh)
-    fos_cells=np.where(prepro >= thresh, 1, 0)
-    filtered=ndi.median_filter(fos_cells, size=5)
-    eroded=ndi.binary_erosion(filtered)
-    dilated= ndi.binary_dilation(eroded, iterations=1)
-    eroded=ndi.binary_erosion(dilated, iterations=2)
-    filt=ndi.median_filter(eroded, size=5)
+    filt=filteredImg(prepro, thresh)
     return filt
 
 def blobs_coordinates(img, stacks):
@@ -89,14 +84,14 @@ channel=1 #channel where Fos staining is
 is_intensity_low=1 #change to 1 if your images have low intensity and you wish to enhance contrast
 axis_limit = 60
 dist_parameter=25
-axis_min=10.5
+axis_min=11
 circ=0.98
-axis_ratio= 0.45
-top_thresh=62 #this is gonna be the threshold for images with higher background, adjust it based on your settings
-mid_thresh=65 #this is gonna be the threshold for images with medium background, adjust it based on your settings
-low_thresh=68 #this is gonna be the threshold for images with lower background, adjust it based on your settings
-high_int_thresh=98
-low_int_thresh=50
+axis_ratio= 0.48
+top_thresh=25 #this is gonna be the threshold for images with higher background, adjust it based on your settings
+mid_thresh=9#this is gonna be the threshold for images with medium background, adjust it based on your settings
+low_thresh=30 #this is gonna be the threshold for images with lower background, adjust it based on your settings
+high_int_thresh=92
+low_int_thresh=30
 
 #%% path to images
 #path="/PathGoesHere/fos_images" #change this to the path to your images 
@@ -135,7 +130,7 @@ counts.to_csv("/Users/romina/Desktop/counts_fos_julia_remmem.csv") #add the path
 #here is where you can see your images and try which threshold suits you best 
  # try adjusting the top and low threshold values until you get optimal results
 # %% 
-data= path + "/"+"D_APPvsWT_remotememory_DAPI_fos_GAD67_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
+data= path + "/"+"H_APPvsWT_remotememory_DAPI_fos_GAD67_2.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
 fos_t, stacks=getImg(1, data)
 print(stacks)
 
