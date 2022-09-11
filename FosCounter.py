@@ -92,9 +92,9 @@ dist_parameter=25
 axis_min=10.5
 circ=0.98
 axis_ratio= 0.45
-top_thresh=50 #this is gonna be the threshold for images with higher background, adjust it based on your settings
-mid_thresh=6 #this is gonna be the threshold for images with medium background, adjust it based on your settings
-low_thresh=4 #this is gonna be the threshold for images with lower background, adjust it based on your settings
+top_thresh=62 #this is gonna be the threshold for images with higher background, adjust it based on your settings
+mid_thresh=65 #this is gonna be the threshold for images with medium background, adjust it based on your settings
+low_thresh=68 #this is gonna be the threshold for images with lower background, adjust it based on your settings
 high_int_thresh=98
 low_int_thresh=50
 
@@ -135,7 +135,7 @@ counts.to_csv("/Users/romina/Desktop/counts_fos_julia_remmem.csv") #add the path
 #here is where you can see your images and try which threshold suits you best 
  # try adjusting the top and low threshold values until you get optimal results
 # %% 
-data= path + "/"+"C_APPvsWT_remotememory_DAPI_fos_GAD67_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
+data= path + "/"+"D_APPvsWT_remotememory_DAPI_fos_GAD67_1.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
 fos_t, stacks=getImg(1, data)
 print(stacks)
 
