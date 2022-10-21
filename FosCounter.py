@@ -112,7 +112,7 @@ counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
     try:
         name= path + "/" + filename
-        fos, stacks=getImg(channel, name) #change the 3 here for the channel where your fos is stained, note that the count starts in 0 so if you have fos in the first channel of your image you need to put 0 here and so on (i.e here the 3 corresponds to the IR channel)
+        fos, stacks=getImg(channel, name) 
         blobs= blobs_coordinates(fos, stacks)
         overlap=overlap_coords(blobs, stacks, dist_parameter)
         fos_count=len(blobs)-len(overlap)
