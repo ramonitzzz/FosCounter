@@ -19,7 +19,7 @@ def getImg(channel, data_path):
     img=vol[:,channel,:,:]
     stacks= np.shape(img)[0]
     return img, stacks
-
+ 
 def filteredImg(prepro, thresh):
         cells=np.where(prepro >=thresh, 1, 0)
         filtered=ndi.median_filter(cells, size=5)
