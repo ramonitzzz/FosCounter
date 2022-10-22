@@ -64,13 +64,11 @@ def show_labels(img, img_original, circ, axis_min, axis_limit, axis_ratio):
     plt.show()
 
 class getThresh:
-    def __init__(self, img, top_thresh, low_thresh):
+    def __init__(self, img):
         self.img= img
-        self.top_thresh= top_thresh
-        self.low_thresh= low_thresh
 
 
-    def threshPV(self):
+    def threshPV(self, top_thresh, low_thresh):
         denoise=sk.restoration.denoise_wavelet(self.img)
         blurred = sk.filters.gaussian(denoise, sigma=2.0)
         clahe= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
@@ -85,13 +83,13 @@ class getThresh:
                     else:
                         thresh=t_thresh + np.percentile(clahe, 18.5)
                 else:
-                    thresh= t_thresh + np.percentile(clahe, self.top_thresh)
+                    thresh= t_thresh + np.percentile(clahe, top_thresh)
             else:
-                thresh= t_thresh + np.percentile(clahe, self.low_thresh)
+                thresh= t_thresh + np.percentile(clahe, low_thresh)
         filtPV= filteredImg(clahe, thresh)
         return filtPV
     
-    def threshFos(self):
+    def threshFos_no(self):
         denoise=sk.restoration.denoise_wavelet(self.img)
         blurred = sk.filters.gaussian(denoise, sigma=2.0)
         t_thresh=sk.filters.threshold_otsu(blurred)
@@ -103,8 +101,35 @@ class getThresh:
             thresh= t_thresh + np.percentile(blurred,self.low_thresh)
         filtFos= filteredImg(blurred, thresh)
         return filtFos
+
+    def threshFos(self, fos_thresh, int_dict):
+        denoise=sk.restoration.denoise_wavelet(self.img)
+        blurred = sk.filters.gaussian(denoise, sigma=2.0)
+        if fos_thresh.get("is_intensity_low") ==0:
+            prepro=blurred
+        else:
+            prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
+        t_thresh=sk.filters.threshold_otsu(prepro)
+        #filter images with too low or too bright intensities 
+        if np.percentile(prepro, 25)<= int_dict.get("low_int"): #this is a safety net for images with too little intensity, you can try and adjust this if needed
+            thresh= t_thresh + np.percentile(prepro, fos_thresh.get("high_int_thresh")) 
+        elif np.percentile(prepro,99)>= int_dict.get("high_int"):
+            thresh= t_thresh + np.percentile(prepro, fos_thresh.get("low_int_thresh")) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
+        else:
+            if t_thresh/np.median(prepro)>=int_dict.get("int_cutoff_up"):
+                thresh= t_thresh
+            else:
+                if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff"): 
+                    if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff_down"): #before int_cutoff*0.66
+                        thresh=t_thresh + np.percentile(prepro, fos_thresh.get("low_thresh"))
+                    else:
+                        thresh= t_thresh + np.percentile(prepro, fos_thresh.get("top_thresh"))
+                else:
+                    thresh= t_thresh + np.percentile(prepro, fos_thresh.get("mid_thresh"))
+        filtFos=filteredImg(prepro, thresh)
+        return filtFos
     
-    def threshMC(self):
+    def threshMC(self, top_thresh, low_thresh):
         denoise=sk.restoration.denoise_wavelet(self.img)
         blurred = sk.filters.gaussian(denoise, sigma=2.0)
         t_thresh=sk.filters.threshold_otsu(blurred)
@@ -118,9 +143,9 @@ class getThresh:
                     if t_thresh/np.median(blurred)<=1:
                         thresh=t_thresh + np.percentile(blurred, 98)
                     else:
-                        thresh= t_thresh + np.percentile(blurred, self.top_thresh)
+                        thresh= t_thresh + np.percentile(blurred, top_thresh)
                 else:
-                    thresh= t_thresh + np.percentile(blurred,self.low_thresh)
+                    thresh= t_thresh + np.percentile(blurred,low_thresh)
         filtMC= filteredImg(blurred, thresh)
         return filtMC
 
@@ -155,16 +180,16 @@ class getCoords:
         blobs=pd.DataFrame(columns=["x","y","z"])
         for i in range(self.stacks):
             img_c=self.img[i]
-            filt=getThresh(img_c, top_thresh, low_thresh).threshPV()
+            filt=getThresh(img_c).threshPV(top_thresh, low_thresh)
             blobs_coords=self.coords(filt, i)
             blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
         return blobs
     
-    def coordsFos(self, top_thresh, low_thresh):
+    def coordsFos(self, fos_thresh, int_dict):
         blobs=pd.DataFrame(columns=["x","y","z"])
         for i in range(self.stacks):
             img_c=self.img[i]
-            filt=getThresh(img_c, top_thresh, low_thresh).threshFos()
+            filt=getThresh(img_c).threshFos(fos_thresh, int_dict)
             blobs_coords=self.coords(filt, i)
             blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
         return blobs
@@ -173,7 +198,7 @@ class getCoords:
         blobs=pd.DataFrame(columns=["x","y","z"])
         for i in range(self.stacks):
             img_c=self.img[i]
-            filt=getThresh(img_c, top_thresh, low_thresh).threshMC()
+            filt=getThresh(img_c).threshMC(top_thresh, low_thresh)
             blobs_coords=self.coords(filt, i)
             blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
         return blobs
@@ -181,7 +206,7 @@ class getCoords:
 class getOverlap:
     def __init__(self, stacks, dist_thresh):
         self.stacks=stacks
-        self.dist_threshr=dist_thresh
+        self.dist_thresh=dist_thresh
     
     #overlapping coordinates between z-stacks of one cell type
     def overlap_coords(self, blobs):
@@ -296,4 +321,13 @@ class intensitySaver:
             int_cutoff=int_cutoff_up
             int_cutoff_up= saver
         
-        return low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down
+        #make dictionary
+
+        int_dic={
+            "low_int": low_int,
+            "high_int": high_int,
+            "int_cutoff_up": int_cutoff_up,
+            "int_cutoff": int_cutoff,
+            "int_cutoff_down": int_cutoff_down
+        }
+        return int_dic

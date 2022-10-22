@@ -9,19 +9,12 @@ import math
 from scipy import ndimage as ndi
 import imageio
 import nd2
-from processingFunctions import getImg, filteredImg, show_original_filt, show_labels, getThresh, getCoords, getOverlap
+from processingFunctions import * 
 
+#%% path to dataset
+path="/Users/romina/Library/Y1/internship_1/remote_memory/NisslIR_mCherry_PVB_fosG"
 
-#%% params
-axis_limit = 60
-dist_thresh=25
-circ=0.98
-
-
-#%%
-#path="/Users/romina/Downloads/NisslIR_mCherry_PVB_fosG"
-path="/Users/romina/remote_memory/NisslIR_mCherry_PVB_fosG"
-# %%
+#%% retrieve all files from dataset folder
 all_files=[]
 for filename in os.listdir(path):
     if filename.endswith(".tif"):
@@ -29,16 +22,35 @@ for filename in os.listdir(path):
     if filename.endswith(".nd2"):
         all_files.append(filename)
 print(all_files)
+#%% dataset parameters
+channelFos=1
+channelPV=0
+channelMC=2
+axis_limit = 60
+dist_thresh=25
+circ=0.98
 
-#%%
+#Fos parameters 
+fos_thresh={
+    "is_intensity_low":0, #use 0 if you have images with a high background, change to 1 if your images have low intensity and you wish to enhance contrast 
+    "top_thresh":25, #this is gonna be the threshold for images with higher background, adjust it based on your settings
+    "mid_thresh":9,#this is gonna be the threshold for images with medium background, adjust it based on your settings
+    "low_thresh":30, #this is gonna be the threshold for images with lower background, adjust it based on your settings
+    "high_int_thresh":92,
+    "low_int_thresh":30
+}
+#%% get intensity cut off values for fos filtering function
+fos_ints= intensitySaver(path, all_files, channelFos, fos_thresh.get("is_intensity_low")).getIntensityValues()
+
+#%% run script and get counts
 counts=pd.DataFrame(columns=["img_ID","fos_cells", "pv_cells", "mCherry", "pv+fos", "pv+mCherry", "fos+mCherry", "fos+pv+mCherry"])
 for filename in all_files:
     name= path + "/"+ filename
-    fos, stacks=getImg(1, name)
-    pv, s2=getImg(0, name)
-    mc, s3= getImg(2, name)
+    fos, stacks=getImg(channelFos, name)
+    pv, s2=getImg(channelPV, name)
+    mc, s3= getImg(channelMC, name)
     #fos cells
-    blobs_fos= getCoords(fos, stacks, circ, 0.45, 11, axis_limit).coordsFos(95, 91)
+    blobs_fos= getCoords(fos, stacks, circ, 0.45, 11, axis_limit).coordsFos(fos_thresh, fos_ints)
     overlap_fos=getOverlap(stacks, dist_thresh).overlap_coords(blobs_fos)
     fos_count=len(blobs_fos)-len(overlap_fos)
     #pv cells
@@ -46,7 +58,7 @@ for filename in all_files:
     overlap_pv=getOverlap(stacks, dist_thresh).overlap_coords(blobs_pv)
     pv_count=len(blobs_pv)-len(overlap_pv)
     #mCherry cells
-    blobs_mc= getCoords(mc, stacks, circ, 0.5, 14, axis_limit).coordsPV(90, 85)
+    blobs_mc= getCoords(mc, stacks, circ, 0.5, 14, axis_limit).coordsMC(90, 85)
     overlap_mc=getOverlap(stacks, dist_thresh).overlap_coords(blobs_mc)
     mc_count=len(blobs_mc)-len(overlap_mc)
     
@@ -73,3 +85,4 @@ for filename in all_files:
 
 #%%
 counts.to_csv("/Users/romina/Desktop/counts_fos_pv_mcherry_retrieval_mc_v2.csv")
+
