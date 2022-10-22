@@ -94,7 +94,7 @@ high_int_thresh=92
 low_int_thresh=30
 
 #%% path to images
-#path="/PathGoesHere/fos_images" #change this to the path to your images 
+#change this to the path to your images 
 path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/internship_1/remote_memory_julia"
 # %% this is gonna print all of the files in the path directory
 all_files=[]
