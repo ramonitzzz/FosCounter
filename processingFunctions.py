@@ -89,7 +89,7 @@ class getThresh:
         filtPV= filteredImg(clahe, thresh)
         return filtPV
     
-    def threshFos_no(self):
+    def threshFos_simpleV(self):
         denoise=sk.restoration.denoise_wavelet(self.img)
         blurred = sk.filters.gaussian(denoise, sigma=2.0)
         t_thresh=sk.filters.threshold_otsu(blurred)
