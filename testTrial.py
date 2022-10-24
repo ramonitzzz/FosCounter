@@ -53,7 +53,7 @@ print (fos_ints)
 
 #%%
 #select one image to visualize if the thresholding is correct
-test_image= "V_1_2006.nd2" #name of image file
+test_image= "V_2_2006.nd2" #name of image file
 data= path + "/"+ test_image #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
 fos_t, stacks=getImg(channelFos, data)
 print(stacks) #will print the number of planes of the z-stack
@@ -103,3 +103,4 @@ for i in range(stacks):
 print(intInfo)
 
 ## once you have decided on the thresholding values copy them on the main file and run the script to obtain the counts for the dataset
+# %%
