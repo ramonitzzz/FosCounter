@@ -162,7 +162,8 @@ class getCoords:
     def coords(self, filt, i):
         blobs_coords=pd.DataFrame(columns=["x","y","z"])
         labels = sk.measure.label(filt)
-        props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity'))
+        #props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity'))
+        props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity',), cache=False)
         props_table=pd.DataFrame(props)
         props_filtered = props_table[props_table['eccentricity'] <= self.circ]
         #props_filtered = props_table[props_table['axis_minor_length'] >= axis_min]
