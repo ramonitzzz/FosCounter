@@ -12,7 +12,7 @@ import imageio
 import nd2
 from processingFunctions import *
 import warnings
-warnings.filterwarnings(action='once')
+warnings.filterwarnings('ignore')
 
 #%% path to folder with the images
 path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/Y1/internship_1/remote_memory/NisslIR_mCherry_PVB_fosG"
@@ -67,7 +67,7 @@ for i in range(stacks):
 
 #%%
 # print the counts for Fos cells
-blobs_fos= getCoords(fos_cc, stacks, circ, axis_ratio, axis_min, axis_limit).coordsFos(fos_thresh, fos_ints)
+blobs_fos= getCoords(fos_t, stacks, circ, axis_ratio, axis_min, axis_limit).coordsFos(fos_thresh, fos_ints)
 overlap=getOverlap(stacks, dist_thresh).overlap_coords(blobs_fos)
 print(len(blobs_fos)-len(overlap))
 
@@ -103,4 +103,4 @@ for i in range(stacks):
 print(intInfo)
 
 ## once you have decided on the thresholding values copy them on the main file and run the script to obtain the counts for the dataset
-# %%
+
