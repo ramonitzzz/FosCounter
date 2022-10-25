@@ -94,7 +94,7 @@ low_int_thresh=30
 
 #%% path to images
 #change this to the path to your images 
-path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/internship_1/remote_memory_julia"
+path="/Users/romina/Library/CloudStorage/OneDrive-VrijeUniversiteitAmsterdam/Y1/internship_1/remote_memory_julia"
 # %% this is gonna print all of the files in the path directory
 all_files=[]
 for filename in os.listdir(path):
@@ -105,7 +105,8 @@ for filename in os.listdir(path):
 print(all_files)
 
 #%% get intensity cut off values for filtering function
-low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down = intensitySaver(path, all_files, channel, is_intensity_low).getIntensityValues()
+fos_ints = intensitySaver(path, all_files, channel, is_intensity_low).getIntensityValues()
+low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down= fos_ints.values()
 # %%
 counts=pd.DataFrame(columns=["img_ID","fos_cells"])
 for filename in all_files:
@@ -156,5 +157,3 @@ for i in range(stacks):
 blobs= blobs_coordinates(fos_t, stacks)
 overlap=overlap_coords(blobs, stacks, dist_parameter)
 print(len(blobs)-len(overlap))
-
-# %%
