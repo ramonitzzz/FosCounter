@@ -34,6 +34,7 @@ channelFos=1 #channel where Fos staining is
 axis_limit = 60
 dist_thresh=25
 axis_min=11
+axis_limit=60
 circ=0.98
 axis_ratio= 0.48
 
