@@ -117,7 +117,7 @@ class getThresh:
             thresh= t_thresh + np.percentile(prepro, fos_thresh.get("low_int_thresh")) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
         else:
             if t_thresh/np.median(prepro)>=int_dict.get("int_cutoff_up"):
-                thresh= t_thresh
+                thresh= t_thresh + np.percentile(prepro, fos_thresh.get("extra_bright_thresh"))
             else:
                 if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff"): 
                     if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff_down"): #before int_cutoff*0.66
