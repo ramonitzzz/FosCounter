@@ -67,87 +67,63 @@ class getThresh:
     def __init__(self, img):
         self.img= img
 
-
-    def threshPV(self, top_thresh, low_thresh):
+    def thresh(self, thresh_dict, int_dict):
         denoise=sk.restoration.denoise_wavelet(self.img)
         blurred = sk.filters.gaussian(denoise, sigma=2.0)
-        clahe= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
-        t_thresh=sk.filters.threshold_otsu(clahe)
-        if np.percentile(clahe, 25)<0.24:
-            thresh=t_thresh+np.percentile(clahe, 80)
-        else:
-            if t_thresh/np.median(clahe)<=1.45:
-                if t_thresh/np.median(clahe)<=1.02: 
-                    if t_thresh/np.median(clahe)<=0.88:
-                        thresh=t_thresh + np.percentile(clahe, 60)
-                    else:
-                        thresh=t_thresh + np.percentile(clahe, 18.5)
-                else:
-                    thresh= t_thresh + np.percentile(clahe, top_thresh)
-            else:
-                thresh= t_thresh + np.percentile(clahe, low_thresh)
-        filtPV= filteredImg(clahe, thresh)
-        return filtPV
-    
-    def threshFos_simpleV(self):
-        denoise=sk.restoration.denoise_wavelet(self.img)
-        blurred = sk.filters.gaussian(denoise, sigma=2.0)
-        t_thresh=sk.filters.threshold_otsu(blurred)
-        if t_thresh/np.median(blurred)<=1.5:
-            thresh= t_thresh + np.percentile(blurred, self.top_thresh)
-        elif t_thresh/np.median(blurred)>=3:
-            thresh= t_thresh + np.percentile(blurred, 20)
-        else:
-            thresh= t_thresh + np.percentile(blurred,self.low_thresh)
-        filtFos= filteredImg(blurred, thresh)
-        return filtFos
-
-    def threshFos(self, fos_thresh, int_dict):
-        denoise=sk.restoration.denoise_wavelet(self.img)
-        blurred = sk.filters.gaussian(denoise, sigma=2.0)
-        if fos_thresh.get("is_intensity_low") ==0:
+        if thresh_dict.get("is_intensity_low") ==0:
             prepro=blurred
         else:
             prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
         t_thresh=sk.filters.threshold_otsu(prepro)
         #filter images with too low or too bright intensities 
         if np.percentile(prepro, 25)<= int_dict.get("low_int"): #this is a safety net for images with too little intensity, you can try and adjust this if needed
-            thresh= t_thresh + np.percentile(prepro, fos_thresh.get("high_int_thresh")) 
+            thresh= t_thresh + np.percentile(prepro, thresh_dict.get("high_int_thresh")) 
         elif np.percentile(prepro,99)>= int_dict.get("high_int"):
-            thresh= t_thresh + np.percentile(prepro, fos_thresh.get("low_int_thresh")) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
+            thresh= t_thresh + np.percentile(prepro, thresh_dict.get("low_int_thresh")) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
         else:
             if t_thresh/np.median(prepro)>=int_dict.get("int_cutoff_up"):
-                thresh= t_thresh + np.percentile(prepro, fos_thresh.get("extra_bright_thresh"))
+                thresh= t_thresh + np.percentile(prepro, thresh_dict.get("extra_bright_thresh"))
             else:
                 if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff"): 
                     if t_thresh/np.median(prepro)<=int_dict.get("int_cutoff_down"): #before int_cutoff*0.66
-                        thresh=t_thresh + np.percentile(prepro, fos_thresh.get("low_thresh"))
+                        thresh=t_thresh + np.percentile(prepro, thresh_dict.get("low_thresh"))
                     else:
-                        thresh= t_thresh + np.percentile(prepro, fos_thresh.get("top_thresh"))
+                        thresh= t_thresh + np.percentile(prepro, thresh_dict.get("top_thresh"))
                 else:
-                    thresh= t_thresh + np.percentile(prepro, fos_thresh.get("mid_thresh"))
+                    thresh= t_thresh + np.percentile(prepro, thresh_dict.get("mid_thresh"))
         filtFos=filteredImg(prepro, thresh)
         return filtFos
-    
-    def threshMC(self, top_thresh, low_thresh):
-        denoise=sk.restoration.denoise_wavelet(self.img)
-        blurred = sk.filters.gaussian(denoise, sigma=2.0)
-        t_thresh=sk.filters.threshold_otsu(blurred)
-        if np.percentile(blurred, 99)<= 0.0038: 
-            thresh= t_thresh + np.percentile(blurred, 95) #change 95 for 90
-        else:
-            if t_thresh/np.median(blurred)>=4:
-                thresh= t_thresh + np.percentile(blurred, 25)
+
+    def intInfo(self, stacks, int_dict, is_intensity_low=0):
+        intInfo= pd.DataFrame(columns=["stack","classifier value", "25 p", "99 p", "threshold applied"])
+        for i in range(stacks):
+            denoise=sk.restoration.denoise_wavelet(self.img[i])
+            blurred = sk.filters.gaussian(denoise, sigma=2.0)
+            if is_intensity_low ==0:
+                prepro=blurred
             else:
-                if t_thresh/np.median(blurred)<=1.5: 
-                    if t_thresh/np.median(blurred)<=1:
-                        thresh=t_thresh + np.percentile(blurred, 98)
-                    else:
-                        thresh= t_thresh + np.percentile(blurred, top_thresh)
+                prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
+            thresh=sk.filters.threshold_otsu(prepro)
+            if np.percentile(prepro, 25)<= int_dict.get("low_int"): 
+                cat= "high_int_thresh"
+            elif np.percentile(prepro,99)>= int_dict.get("high_int"):
+                cat= "low_int_thresh"
+            else:
+                if thresh/np.median(prepro)>=int_dict.get("int_cutoff_up"):
+                    cat= "extra_bright_thresh"
                 else:
-                    thresh= t_thresh + np.percentile(blurred,low_thresh)
-        filtMC= filteredImg(blurred, thresh)
-        return filtMC
+                    if thresh/np.median(prepro)<=int_dict.get("int_cutoff"): 
+                        if thresh/np.median(prepro)<=int_dict.get("int_cutoff_down"): 
+                            cat= "low_thresh"
+                        else:
+                            cat= "top thresh"
+                    else:
+                        cat= "mid thresh"
+            val_list= [i, thresh/np.median(prepro),np.percentile(prepro, 25), np.percentile(prepro, 99), cat]
+            c_series = pd.Series(val_list, index = intInfo.columns)
+            intInfo = intInfo.append(c_series, ignore_index=True)
+        return intInfo
+ 
 
 
 class getCoords:
@@ -175,31 +151,13 @@ class getCoords:
         blobs_coords["y"]=props_filtered["centroid-1"]
         blobs_coords["z"]=i
         return blobs_coords
-  
 
-    def coordsPV(self, top_thresh, low_thresh):
-        blobs=pd.DataFrame(columns=["x","y","z"])
-        for i in range(self.stacks):
-            img_c=self.img[i]
-            filt=getThresh(img_c).threshPV(top_thresh, low_thresh)
-            blobs_coords=self.coords(filt, i)
-            blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
-        return blobs
     
-    def coordsFos(self, fos_thresh, int_dict):
+    def coordsCells(self, thresh_dict, int_dict):
         blobs=pd.DataFrame(columns=["x","y","z"])
         for i in range(self.stacks):
             img_c=self.img[i]
-            filt=getThresh(img_c).threshFos(fos_thresh, int_dict)
-            blobs_coords=self.coords(filt, i)
-            blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
-        return blobs
-    
-    def coordsMC(self, top_thresh, low_thresh):
-        blobs=pd.DataFrame(columns=["x","y","z"])
-        for i in range(self.stacks):
-            img_c=self.img[i]
-            filt=getThresh(img_c).threshMC(top_thresh, low_thresh)
+            filt=getThresh(img_c).thresh(thresh_dict, int_dict)
             blobs_coords=self.coords(filt, i)
             blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
         return blobs
