@@ -11,71 +11,8 @@ from scipy import stats
 import imageio
 import nd2
 from processingFunctions import *
-
-#%% <functions>
-def filtering(img, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh):
-    denoise=sk.restoration.denoise_wavelet(img)
-    blurred = sk.filters.gaussian(denoise, sigma=2.0)
-    if is_intensity_low ==0:
-        prepro=blurred
-    else:
-        prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
-    t_thresh=sk.filters.threshold_otsu(prepro)
-    #filter images with too low or too bright intensities 
-    if np.percentile(prepro, 25)<= low_int: #this is a safety net for images with too little intensity, you can try and adjust this if needed
-        thresh= t_thresh + np.percentile(prepro, high_int_thresh) 
-    elif np.percentile(prepro,99)>= high_int:
-        thresh= t_thresh + np.percentile(prepro, low_int_thresh) #this is a safety net for images with too much intensity, you can also try and adjust this if needed 
-    else:
-        if t_thresh/np.median(prepro)>=int_cutoff_up:
-            thresh= t_thresh
-        else:
-            if t_thresh/np.median(prepro)<=int_cutoff: 
-                if t_thresh/np.median(prepro)<=int_cutoff_down: #before int_cutoff*0.66
-                    thresh=t_thresh + np.percentile(prepro, low_thresh)
-                else:
-                    thresh= t_thresh + np.percentile(prepro, top_thresh)
-            else:
-                thresh= t_thresh + np.percentile(prepro, mid_thresh)
-    filt=filteredImg(prepro, thresh)
-    return filt
-
-def blobs_coordinates(img, stacks):
-    blobs=pd.DataFrame(columns=["x","y","z"])
-    for i in range(stacks):
-        blobs_coords=pd.DataFrame(columns=["x","y","z"])
-        fos_c=img[i]
-        filt=filtering(fos_c, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh)
-        labels = sk.measure.label(filt)
-        props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity'))
-        props_table=pd.DataFrame(props)
-        props_filtered = props_table[props_table['eccentricity'] <= circ]
-        #props_filtered = props_table[props_table['axis_minor_length'] >= axis_min]
-        props_filtered=props_filtered[props_filtered['axis_minor_length'] >= axis_min]
-        props_filtered=props_filtered[props_filtered['axis_major_length'] <= axis_limit]
-        props_filtered=props_filtered[(props_filtered['axis_minor_length']/props_filtered['axis_major_length']) >= axis_ratio]
-        #props_filtered=props_filtered[props_filtered['eccentricity'] <= circ]
-        blobs_coords["x"]=props_filtered["centroid-0"]
-        blobs_coords["y"]=props_filtered["centroid-1"]
-        blobs_coords["z"]=i
-        blobs=pd.concat([blobs,blobs_coords], ignore_index=True)
-    return blobs
-
-def overlap_coords(blobs, stacks, dist_thresh):
-    overlap=pd.DataFrame(columns=["x1","y1","z1","x2","y2","z2","dist"])
-    for i in range(stacks):
-        for index, row in blobs.iterrows():
-            if row["z"]==i:
-                for index_2, row_2 in blobs.iterrows():
-                    if row_2["z"]== (i+1):
-                        #dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-                        dist= math.sqrt((row_2["x"]-row["x"])**2 + (row_2["y"]-row["y"])**2)
-                        if dist<dist_thresh:
-                            ov_list=(row["x"], row["y"], row["z"],row_2["x"],row_2["y"],row_2["z"],dist)
-                            a_series = pd.Series(ov_list, index = overlap.columns)
-                            overlap = overlap.append(a_series, ignore_index=True)
-    return overlap
-
+import warnings
+warnings.filterwarnings('ignore')
 
 #%% PARAMETERS
 # you're gonna have to adjust the thresholding parameters depending on your images 
@@ -86,11 +23,17 @@ dist_parameter=25
 axis_min=11
 circ=0.98
 axis_ratio= 0.48
-top_thresh=25 #this is gonna be the threshold for images with higher background, adjust it based on your settings
-mid_thresh=9#this is gonna be the threshold for images with medium background, adjust it based on your settings
-low_thresh=30 #this is gonna be the threshold for images with lower background, adjust it based on your settings
-high_int_thresh=92
-low_int_thresh=30
+
+#Fos parameters, if you want to filter more per image, then 
+fos_thresh={
+    "is_intensity_low":0, #use 0 if you have images with a high background, change to 1 if your images have low intensity and you wish to enhance contrast 
+    "top_thresh": 98, #this is gonna be the percentile threshold for images with higher background, adjust it based on your settings
+    "mid_thresh": 98,#this is gonna be the percentile threshold for images with medium background, adjust it based on your settings
+    "low_thresh": 97, #this is gonna be the percentile threshold for images with lower background, adjust it based on your settings
+    "extra_bright_thresh": 98.5, #extra threshold, if you
+    "high_int_thresh": 90, #are your images super bright? Then increase this value
+    "low_int_thresh": 98.8 #are your images super holey? Then decrease this value
+}
 
 #%% path to images
 #change this to the path to your images 
@@ -105,7 +48,7 @@ for filename in os.listdir(path):
 print(all_files)
 
 #%% get intensity cut off values for filtering function
-fos_ints = intensitySaver(path, all_files, channel, is_intensity_low).getIntensityValues()
+fos_ints = intensitySaver(path, all_files, channel, fos_thresh.get("is_intensity_low")).getIntensityValues()
 low_int, high_int, int_cutoff_up, int_cutoff, int_cutoff_down= fos_ints.values()
 # %%
 counts=pd.DataFrame(columns=["img_ID","fos_cells"])
@@ -113,8 +56,8 @@ for filename in all_files:
     try:
         name= path + "/" + filename
         fos, stacks=getImg(channel, name) 
-        blobs= blobs_coordinates(fos, stacks)
-        overlap=overlap_coords(blobs, stacks, dist_parameter)
+        blobs= getCoords(fos, stacks, circ, axis_ratio, axis_min, axis_limit).coordsCells(fos_thresh, fos_ints)
+        overlap=getOverlap(stacks, dist_parameter).overlap_coords(blobs)
         fos_count=len(blobs)-len(overlap)
         count_list=(filename, fos_count)
         c_series = pd.Series(count_list, index = counts.columns)
@@ -123,37 +66,4 @@ for filename in all_files:
         print(filename + " not_read")
 
 # %%
-#counts.to_csv("/PathGoesHere/counts_fos.csv") #add the path and name of the results file
 counts.to_csv("/Users/romina/Desktop/counts_fos_julia_remmem.csv") #add the path and name of the results file
-
-########
-#here is where you can see your images and try which threshold suits you best 
- # try adjusting the top and low threshold values until you get optimal results
-# %% 
-data= path + "/"+"H_APPvsWT_remotememory_DAPI_fos_GAD67_2.tif" #open an image here to examinate (note that you're gonna have to open a few to see how your images vary from each other)
-fos_t, stacks=getImg(1, data)
-print(stacks)
-
-# %% here you can see the values of the image intensities 
-for i in range(stacks):
-    denoise=sk.restoration.denoise_wavelet(fos_t[i])
-    blurred = sk.filters.gaussian(denoise, sigma=2.0)
-    if is_intensity_low ==0:
-        prepro=blurred
-    else:
-        prepro= sk.exposure.equalize_adapthist(blurred, kernel_size=127,clip_limit=0.01,  nbins=256)
-    thresh=sk.filters.threshold_otsu(prepro)
-    print(thresh/np.median(prepro)) #note that this is what the conditional thresholding is based on, this is the relation to the otsu threshold method to the median value of the intensity of the image
-    print("25 p:", np.percentile(prepro, 25), "99 p:", np.percentile(prepro, 99)) #this will give you information about the range of the image intensity
-
-# %% TEST TRIAL 
-#here you can visually inspect the image and how it is being thresholded, and then adjust your thresholding values accordingly 
-for i in range(stacks):
-    fos_cc=fos_t[i]
-    filt=filtering(fos_cc, top_thresh, mid_thresh, low_thresh, high_int_thresh, low_int_thresh)
-    show_labels(filt, fos_cc, circ, axis_min, axis_limit, axis_ratio)
-
-# %% here you can see the fos count of the trial image 
-blobs= blobs_coordinates(fos_t, stacks)
-overlap=overlap_coords(blobs, stacks, dist_parameter)
-print(len(blobs)-len(overlap))
