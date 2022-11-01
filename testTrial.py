@@ -146,7 +146,7 @@ for i in range(stacks):
     show_labels(filt, pv_cc, circ, axis_min_mc, axis_limit, axis_ratio_mc)
 
 #%%
-# print the counts for MC cells 
+# print the counts for PV cells 
 blobs_pv=getCoords(pv_t, stacks, circ, axis_ratio_mc, axis_min_mc, axis_limit).coordsCells(pv_thresh, pv_ints)
 overlap=getOverlap(stacks, dist_thresh).overlap_coords(blobs_pv)
 print(len(blobs_pv)-len(overlap))
