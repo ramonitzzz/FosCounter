@@ -121,15 +121,15 @@ print(intInfoFos) #for Fos
 
 #%% MC 
 #select one image to visualize if the thresholding is correct 
-#%% visually inspect the chosen image and how it is being thresholded for mc, and then adjust your thresholding values accordingly 
+#visually inspect the chosen image and how it is being thresholded for mc, and then adjust your thresholding values accordingly 
 for i in range(stacks):
     mc_cc=mc_t[i]
     filt= getThresh(mc_cc).thresh(mc_thresh, mc_ints)
-    show_labels(filt, mc_cc, circ, axis_min_mc, axis_limit, axis_ratio_mc)
+    show_labels(filt, mc_cc, circ, axis_min_mc, axis_limit, axis_ratio_mc, "remove axons") #delete "remove axons" argument if you have circular cells
 
 #%%
 # print the counts for MC cells 
-blobs_mc=getCoords(mc_t, stacks, circ, axis_ratio_mc, axis_min_mc, axis_limit).coordsCells(mc_thresh, mc_ints)
+blobs_mc=getCoords(mc_t, stacks, circ, axis_ratio_mc, axis_min_mc, axis_limit, "remove axons").coordsCells(mc_thresh, mc_ints) #delete "remove axons" argument if you have circular cells
 overlap=getOverlap(stacks, dist_thresh).overlap_coords(blobs_mc)
 print(len(blobs_mc)-len(overlap))
 
