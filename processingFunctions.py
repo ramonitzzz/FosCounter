@@ -29,6 +29,18 @@ def filteredImg(prepro, thresh):
         filt=ndi.median_filter(eroded, size=5)
         return filt
 
+def removeAxons(img, min_distance=10):
+    distance = ndi.distance_transform_edt(img)
+
+    local_max_coords = sk.feature.peak_local_max(distance, min_distance, num_peaks_per_label=2)
+    local_max_mask = np.zeros(distance.shape, dtype=bool)
+    local_max_mask[tuple(local_max_coords.T)] = True
+    markers = sk.measure.label(local_max_mask)
+
+    segNeu = sk.segmentation.watershed(-distance, markers, mask=img) #segmented neuron
+
+    return segNeu
+
 def show_original_filt (original, filt):
     fig, (ax1, ax2) = plt.subplots(1,2)
     ax1.imshow(original, cmap="gray_r")
@@ -37,8 +49,11 @@ def show_original_filt (original, filt):
     ax2.set_axis_off()
     plt.tight_layout()
 
-def show_labels(img, img_original, circ, axis_min, axis_limit, axis_ratio):
-    label_image= sk.measure.label(img)
+def show_labels(img, img_original, circ, axis_min, axis_limit, axis_ratio, remove_axon=None):
+    if remove_axon is None:
+        label_image= sk.measure.label(img)
+    else:
+        label_image=removeAxons(img)
     image_label_overlay = sk.color.label2rgb(label_image, image=img, bg_label=0)
     f, (ax1, ax2)=plt.subplots(1,2)
     #fig, ax2 = plt.subplots(figsize=(10, 6))
@@ -127,17 +142,22 @@ class getThresh:
 
 
 class getCoords:
-    def __init__ (self, img, stacks, circ, axis_ratio, axis_min, axis_limit):
+    def __init__ (self, img, stacks, circ, axis_ratio, axis_min, axis_limit, remove_axon=None):
         self.img= img
         self.stacks= stacks
         self.circ= circ
         self.axis_ratio = axis_ratio
         self.axis_min= axis_min
         self.axis_limit= axis_limit
+        self.remove_axon= remove_axon
 
     def coords(self, filt, i):
         blobs_coords=pd.DataFrame(columns=["x","y","z"])
-        labels = sk.measure.label(filt)
+        if self.remove_axon is None:
+            labels= sk.measure.label(filt)
+        else:
+            labels= removeAxons(filt)
+        #labels = sk.measure.label(filt)
         #props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity'))
         props = sk.measure.regionprops_table(labels, properties=('centroid','axis_major_length','axis_minor_length', 'bbox', 'equivalent_diameter_area','label', 'eccentricity',), cache=False)
         props_table=pd.DataFrame(props)
