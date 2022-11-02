@@ -10,6 +10,8 @@ from scipy import ndimage as ndi
 import imageio
 import nd2
 from processingFunctions import * 
+import warnings
+warnings.filterwarnings('ignore')
 
 #%% path to dataset
 path="/Users/romina/Library/Y1/internship_1/remote_memory/NisslIR_mCherry_PVB_fosG"
@@ -100,7 +102,7 @@ for filename in all_files:
     overlap_pv=getOverlap(stacks, dist_thresh).overlap_coords(blobs_pv)
     pv_count=len(blobs_pv)-len(overlap_pv)
     #mCherry cells
-    blobs_mc= getCoords(mc, stacks, circ, axis_ratio_mc, axis_min_mc, axis_limit).coordsCells(mc_thresh, mc_ints)
+    blobs_mc= getCoords(mc, stacks, circ, axis_ratio_mc, axis_min_mc, axis_limit, "remove axons").coordsCells(mc_thresh, mc_ints)
     overlap_mc=getOverlap(stacks, dist_thresh).overlap_coords(blobs_mc)
     mc_count=len(blobs_mc)-len(overlap_mc)
     
